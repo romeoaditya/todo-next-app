@@ -2,13 +2,13 @@ import Button from "@/components/Button";
 import Column from "@/components/Column";
 import ModalConfirm from "@/components/ModalConfirm";
 import ModalTask from "@/components/ModalTask";
-import {COLUMNS, INITIAL_TASKS} from "@/constants/Task.constans";
+import {COLUMNS} from "@/constants/Task.constans";
 import {ITask} from "@/types/Task";
 import {DndContext, DragEndEvent} from "@dnd-kit/core";
 import {FormEvent, useEffect, useState} from "react";
 
 const App = () => {
-  const [tasks, setTasks] = useState<ITask[]>([...INITIAL_TASKS]);
+  const [tasks, setTasks] = useState<ITask[]>([]);
   const [showModalAddTask, setShowModalAddTask] = useState(false);
   const [selectedTask, setSelectedTask] = useState<{
     activity: string;
