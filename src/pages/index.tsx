@@ -1,115 +1,137 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
+import Button from "@/components/Button";
+import Column from "@/components/Column";
+import ModalConfirm from "@/components/ModalConfirm";
+import ModalTask from "@/components/ModalTask";
+import {COLUMNS, INITIAL_TASKS} from "@/constants/Task.constans";
+import {ITask} from "@/types/Task";
+import {DndContext, DragEndEvent} from "@dnd-kit/core";
+import {FormEvent, useEffect, useState} from "react";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+const App = () => {
+  const [tasks, setTasks] = useState<ITask[]>([...INITIAL_TASKS]);
+  const [showModalAddTask, setShowModalAddTask] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<{
+    activity: string;
+    task: ITask;
+  } | null>(null);
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+  // load tasks on initial render
+  useEffect(() => {
+    const storageTasks = localStorage.getItem("tasks");
+    if (storageTasks) {
+      setTasks(JSON.parse(storageTasks));
+    }
+  }, []);
 
-export default function Home() {
+  // save changes task
+  useEffect(() => {
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+  }, [tasks]);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const {active, over} = event;
+
+    if (!over) return;
+
+    const taskId = active.id as string;
+    const newStatus = over.id as ITask["status"];
+
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task.id === taskId ? {...task, status: newStatus} : task
+      )
+    );
+  };
+
+  const handleCreateTask = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+
+    const newTasks: ITask = {
+      id: Math.random().toString(36).substring(2, 9),
+      title: formData.get("title") as string,
+      description: formData.get("description") as string,
+      status: "TODO",
+    };
+
+    setTasks((prevTasks) => [...prevTasks, newTasks]);
+
+    event.currentTarget.reset();
+    setShowModalAddTask(false);
+  };
+  const handleUpdateTask = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+
+    const updatedTask: ITask = {
+      id: selectedTask?.task.id as string,
+      title: formData.get("title") as string,
+      description: formData.get("description") as string,
+      status: selectedTask?.task.status as ITask["status"],
+    };
+
+    setTasks((prevTasks) =>
+      prevTasks.map((task) => (task.id === updatedTask.id ? updatedTask : task))
+    );
+
+    event.currentTarget.reset();
+    setSelectedTask(null);
+  };
+
+  const handleDeleteTask = () => {
+    setTasks((prevTasks) =>
+      prevTasks.filter((task) => task.id !== selectedTask?.task.id)
+    );
+    setSelectedTask(null);
+  };
+
   return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]`}
-    >
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/pages/index.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+    <main className="min-h-screen p-4 flex flex-col">
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-neutral-700">Task Management</h1>
+        <Button
+          className="bg-blue-500"
+          onClick={() => setShowModalAddTask(true)}
+        >
+          Add Task
+        </Button>
+      </div>
+      <div className="flex gap-8 flex-1">
+        <DndContext onDragEnd={handleDragEnd}>
+          {COLUMNS.map((column) => (
+            <Column
+              setSelectedTask={setSelectedTask}
+              key={column.id}
+              column={column}
+              tasks={tasks.filter((task) => task.status === column.id)}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          ))}
+        </DndContext>
+      </div>
+      {showModalAddTask && (
+        <ModalTask
+          onCancel={() => setSelectedTask(null)}
+          onSubmit={handleCreateTask}
+        />
+      )}
+      {selectedTask?.activity === "update" && (
+        <ModalTask
+          onCancel={() => setSelectedTask(null)}
+          onSubmit={handleUpdateTask}
+          selectedTask={selectedTask.task}
+          type="Update"
+        />
+      )}
+      {selectedTask?.activity === "delete" && (
+        <ModalConfirm
+          onCancel={() => setSelectedTask(null)}
+          onConfirm={handleDeleteTask}
+          title="Delete Task"
+          message="Are you sure you want to delete this task?"
+          type="Delete"
+        />
+      )}
+    </main>
   );
-}
+};
+export default App;
