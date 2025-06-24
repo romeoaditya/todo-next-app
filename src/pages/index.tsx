@@ -110,7 +110,7 @@ const App = () => {
       </div>
       {showModalAddTask && (
         <ModalTask
-          onCancel={() => setSelectedTask(null)}
+          onCancel={() => setShowModalAddTask(false)}
           onSubmit={handleCreateTask}
         />
       )}

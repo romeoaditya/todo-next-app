@@ -18,7 +18,7 @@ const ModalConfirm = (props: ModalConfirmProps) => {
         <div className="flex flex-col gap-4">
           <p className="text-neutral-700">{message}</p>
           <div className="flex w-full items-center justify-end gap-2">
-            <Button type="button" onClick={onCancel} className="bg-neutral-500">
+            <Button onClick={onCancel} className="bg-neutral-500">
               Cancel
             </Button>
             <Button
